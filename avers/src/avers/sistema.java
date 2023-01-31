@@ -6,16 +6,17 @@ import java.sql.*;
 public class sistema {
 	
 	public static void main(String[] args) {
-		login();	
-		operar();
+		boolean isLogin = login();	
+		if (isLogin) operar();
 		//login();
 	}
 	//////////////////////////////	//////////////////////////////	//////////////////////////////
-	private static void login() {
+	private static boolean login() {
 		//Cuenta "Bar"
 		//Contrasena "mipit18"
 		String cuenta,contrasena;
 		boolean login_correcto=false;
+		int intentos=0;
 		
 		Connection conecta_mysql=null;
 		
@@ -26,44 +27,48 @@ public class sistema {
 			System.out.println("No se logro conectar a la Base de Datos");
 		}
 		
-		while (login_correcto==false){
+		while (login_correcto==false && intentos<3){
 			cuenta=get_datos_usuario(1);
 			contrasena=get_datos_usuario(2);
 			
 			try {
-			login_correcto=obtener_datos_login(conecta_mysql,cuenta, contrasena);
+			login_correcto=revisar_datos_login(conecta_mysql,cuenta, contrasena);
+			intentos++;
 			}
 			catch (Exception f) {
 				System.out.println("No se pudo conectar a la Base de Datos");
 				f.printStackTrace();
 			}
 		}
+		if (login_correcto==false)
+			System.out.println("Demasiados intentos\nIntente mas tarde");
+		
 		try {
 			conecta_mysql.close();
 		} catch (SQLException e) {
 			System.out.println("No se cerro la Base de Datos");
 			e.printStackTrace();
 		}
+		
+		return login_correcto;
 	}
 	
-	private static boolean obtener_datos_login(Connection conexion,String cuenta, String contrasena) {
+	private static boolean revisar_datos_login(Connection conexion,String cuenta, String contrasena) {
 		String[] datos={"",""};
+		String query = "SELECT * FROM usuarios WHERE Cuenta=\'";
 		int comparar_nombres;
 		boolean isvalid=false;
 		
 		ResultSet usuario_obtenido;
 		
 		try {
-			usuario_obtenido=conexion.createStatement().executeQuery("SELECT * FROM usuarios WHERE Cuenta='"+cuenta+"'");
-			//revisar si esta vacio con otro codigo
-			if (usuario_obtenido.wasNull())
+			usuario_obtenido=conexion.createStatement().executeQuery(query+cuenta+"\'");
+			usuario_obtenido.next();
+			if (usuario_obtenido.getRow()==0)	
 				System.out.println("No existe esa cuenta\n");
 			else
 			{
-				usuario_obtenido.getString(2);
-				System.out.println(usuario_obtenido.getString(2));
-				
-				comparar_nombres=usuario_obtenido.getString(2).compareTo(contrasena);
+				comparar_nombres=usuario_obtenido.getString(3).compareTo(contrasena);
 				if (comparar_nombres!=0)
 				{
 					System.out.println("Contrasena incorrecta\n");
